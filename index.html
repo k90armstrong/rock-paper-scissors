@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.0/css/bulma.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <title>Rock Paper Scissors</title>
+</head>
+
+<body>
+
+    <div class="container">
+        <section class="hero">
+            <div class="hero-body">
+                <div class="container">
+                    <h1 class="title">
+                        Rock Paper Scissors
+                    </h1>
+                    <h2 class="subtitle">
+                        How good are you at predicting your oponents
+                        <a href="https://www.psychologytoday.com/blog/the-blame-game/201504/the-surprising-psychology-rock-paper-scissors" target="_blank">non-random</a> behavior?
+                    </h2>
+                </div>
+            </div>
+        </section>
+        <section class="game-rooms">
+
+        </section>
+    </div>
+
+
+    <!--This is the welcome modal -->
+    <div class="modal is-active">
+        <div class="modal-background">
+        </div>
+        <div class="modal-content">
+            <p class="subtitle display-none">You can now choose your oponent and begin the game!</p>
+            <form>
+                <div class="field">
+                    <label class="label">Name</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Text input">
+                    </div>
+                </div>
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button type="Submit" class="button is-link">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <script src="https://www.gstatic.com/firebasejs/4.6.1/firebase.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+    <script src="assets/javascript/welcome.js"></script>
+</body>
+
+</html>
