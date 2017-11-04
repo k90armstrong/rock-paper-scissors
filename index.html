@@ -11,44 +11,101 @@
 </head>
 
 <body>
-
-    <div class="container">
-        <section class="hero">
-            <div class="hero-body">
-                <div class="container">
-                    <h1 class="title">
-                        Rock Paper Scissors
-                    </h1>
-                    <h2 class="subtitle">
-                        How good are you at predicting your oponents
-                        <a href="https://www.psychologytoday.com/blog/the-blame-game/201504/the-surprising-psychology-rock-paper-scissors" target="_blank">non-random</a> behavior?
-                    </h2>
+    <section>
+        <div class="container">
+            <section class="hero is-small">
+                <div class="hero-body">
+                    <div class="container">
+                        <h1 class="title">
+                            Rock Paper Scissors
+                        </h1>
+                        <h2 class="subtitle">
+                            How good are you at predicting your oponents
+                            <a href="https://www.psychologytoday.com/blog/the-blame-game/201504/the-surprising-psychology-rock-paper-scissors" target="_blank">non-random</a> behavior?
+                        </h2>
+                    </div>
                 </div>
-            </div>
-        </section>
-        <section class="game-rooms display-none">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>
-                            <abbr title="Name">Name</abbr>
-                        </th>
-                        <th>
-                            <abbr title="Wins">Wins</abbr>
-                        </th>
-                        <th>
-                            <abbr title="Losses">Losses</abbr>
-                        </th>
-                        <th>
-                            <abbr title="Invite">Invite</abbr>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </section>
-    </div>
+            </section>
+            <section class="game-rooms display-none">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>
+                                <abbr title="Name">Name</abbr>
+                            </th>
+                            <th>
+                                <abbr title="Wins">Wins</abbr>
+                            </th>
+                            <th>
+                                <abbr title="Losses">Losses</abbr>
+                            </th>
+                            <th>
+                                <abbr title="Invite">Invite</abbr>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </section>
+            <section class="game-container display-none">
+                <div class="columns">
+                    <div class="column">
+                        <p class="subtitle is-marginless">You</p>
+                        <p>Wins:
+                            <span class="game-user-wins"></span>
+                        </p>
+                        <div class="image-container level">
+                            <div class="level-item user-choice">Pick Weapon</div>
+                        </div>
+                        <div class="field is-grouped dropdown">
+                            <div class="control">
+                                <div class="select">
+                                    <select class="weapon">
+                                        <option>Rock</option>
+                                        <option>Paper</option>
+                                        <option>Scissors</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control">
+                                <button class="pick-button button is-link">Pick</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <p class="subtitle is-marginless">VS.</p>
+                        <div class="vs-container">
+                        </div>
+                    </div>
+                    <div class="column">
+                        <p class="subtitle oponent-name is-marginless">Ashley</p>
+                        <p>Wins:
+                            <span class="game-oponent-wins"></span>
+                        </p>
+                        <div class="image-container level">
+                            <div class="level-item oponent-choice">Waiting...</div>
+                        </div>
+                        <div class="control">
+                            <button class="quit-game-button button is-link">Quit</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="messages">
+                </div>
+                <div class="field">
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Send a message/insult">
+                    </div>
+                </div>
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button class="button is-link">Submit</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </section>
 
 
     <!--This is the welcome modal -->
@@ -61,7 +118,7 @@
                 <div class="field">
                     <label class="label">Name</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Text input">
+                        <input class="name-input input" type="text" placeholder="Enter name">
                     </div>
                 </div>
                 <div class="field is-grouped">

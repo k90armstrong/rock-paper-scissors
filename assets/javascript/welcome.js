@@ -21,6 +21,7 @@ class User {
         this.losses = dbUser.losses;
         this.online = dbUser.online;
         this.userId = userId;
+        this.gameId = dbUser.gameId;
     }
     addDbRef() {
         if (this.id) {
@@ -29,7 +30,7 @@ class User {
     }
     addListener() {
         this.dbRef.on('value', (snapshot) => {
-            this.userInfoChanged(snapshot)
+            this.userInfoChanged(snapshot);
         });
     }
     userInfoChanged(snapshot) {
@@ -41,6 +42,7 @@ class User {
         this.losses = dbUser.losses;
         this.online = dbUser.online;
         this.invitation = dbUser.invitation;
+        this.gameId = dbUser.gameId;
         console.log(dbUser);
         if (dbUser.online === false) {
             this.changeToOffline();
@@ -63,6 +65,7 @@ class User {
         }
         if (this.invitation === 'accepted') {
             // open the game
+            window.closeWaitModal();
             window.openGame();
             this.dbRef.update({
                 invitation: 'waiting'
@@ -78,7 +81,20 @@ class User {
             this.dbRef.update({
                 invitation: 'waiting'
             });
+        } else if (this.invitation === 'quit') {
+            window.closeGame();
+            this.dbRef.update({
+                invitation: 'waiting'
+            });
         }
+        if (this.gameId) {
+            db.ref('/games/' + this.gameId).on('value', (sapshot) => {
+                this.gameChangeHandler(snapshot);
+            })
+        }
+    }
+    gameChangeHandler(snapshot) {
+        console.log(snapshot);
     }
     changeToAvailable() {
         $('#tr' + this.id).find('.offline').addClass('display-none');
@@ -105,11 +121,13 @@ $(document).ready(function () {
     var oponent;
     var userId = localStorage.getItem('id');
     var availableUsers = db.ref('/availableUsers');
+    var gamesRef = db.ref('/games');
+    var gameId;
 
     // checking if there is a name stored in local storage
     var userName = localStorage.getItem('name');
     if (userName) {
-        $('input').val(userName);
+        $('.name-input').val(userName);
     }
 
     var user = new User({
@@ -120,6 +138,7 @@ $(document).ready(function () {
         wins: 0,
         losses: 0,
         online: true,
+        gameId: null
     }, null);
     var userRef = db.ref('/availableUsers/' + user.id);
 
@@ -133,13 +152,9 @@ $(document).ready(function () {
         return null;
     }
 
-    function isUser(id) {
-        return id === user.id
-    }
-
     function submittButtonHandler(e) {
         e.preventDefault();
-        userName = $('input').val();
+        userName = $('.name-input').val();
         user.name = userName;
         // check if they have played before
         if (!userId || userName != localStorage.getItem('name')) {
@@ -151,7 +166,8 @@ $(document).ready(function () {
                 wins: 0,
                 losses: 0,
                 invitation: 'waiting',
-                online: true
+                online: true,
+                gameId: null
             });
             user.id = fireUserRef.key;
             // set the id for local storage
@@ -204,6 +220,7 @@ $(document).ready(function () {
 
     window.openInvitaionModal = function (id) {
         oponent = getUserById(id);
+        user.oponentId = oponent.id;
         $('.ivitation').addClass('display-none');
         $('.invitation').addClass('is-active');
         $('.oponent-span').text(oponent.name);
@@ -219,6 +236,13 @@ $(document).ready(function () {
     window.closeInvitationModal = function () {
         fadeOut($('.invitation'), function () {
             $('.invitation').removeClass('is-active');
+        });
+    }
+
+    window.closeGame = function () {
+        fadeOut($('.game-container'), function () {
+            $('.game-container').addClass('display-none');
+            fadeIn($('.game-rooms'));
         });
     }
 
@@ -269,6 +293,7 @@ $(document).ready(function () {
     function playButtonHanlder(event) {
         var id = $(this).attr('data-id');
         oponent = getUserById(id);
+        user.oponentId = oponent.id;
         console.log('oponent', oponent)
         // invite a user
         oponent.dbRef.update({
@@ -287,20 +312,43 @@ $(document).ready(function () {
 
     function okButtonClickHandler(event) {
         event.preventDefault();
+        // create a new game object in db
+        var gameReturn = gamesRef.push({
+            player1: {
+                id: user.id,
+                choice: null
+            },
+            player2: {
+                id: oponent.id,
+                choice: null
+            }
+        });
+        gameId = gameReturn.key;
+
         user.dbRef.update({
             request: false,
-            inGame: true
+            inGame: true,
+            gameId: gameId,
+            choice: null
         });
         oponent.dbRef.update({
             invitation: 'accepted',
-            inGame: true
+            inGame: true,
+            gameId: gameId,
+            choice: null
         });
         window.closeInvitationModal();
-        // create a new game object in db
+
         // open the game
+        window.openGame();
     }
 
     window.openGame = function () {
+        fadeOut($('.game-rooms'), function () {
+            $('.oponent-name').text(oponent.name);
+            $('.game-rooms').addClass('display-none');
+            fadeIn($('.game-container'));
+        });
 
     }
 
@@ -308,11 +356,13 @@ $(document).ready(function () {
         event.preventDefault();
         user.dbRef.update({
             request: false,
-            inGame: false
+            inGame: false,
+            choice: null
         });
         oponent.dbRef.update({
             invitation: 'denied',
-            inGame: false
+            inGame: false,
+            choice: null
         });
         fadeOut($('.invitation'), function () {
             $('.invitation').removeClass('is-active');
@@ -324,14 +374,42 @@ $(document).ready(function () {
         oponent.dbRef.update({
             invitation: 'revoked',
             inGame: false,
-            request: false
+            request: false,
+            choice: null
         });
         user.dbRef.update({
             inGame: false,
             invitation: 'waiting',
-            request: false
+            request: false,
+            choice: null
         });
         window.closeWaitModal();
+    }
+
+    function quitButtonClickHandler(event) {
+        event.preventDefault();
+        user.dbRef.update({
+            inGame: false,
+            invitation: 'waiting',
+            request: false,
+            choice: null
+        });
+        oponent.dbRef.update({
+            inGame: false,
+            invitation: 'quit',
+            request: false,
+            choice: null
+        });
+        window.closeGame();
+    }
+
+    function pickButtonClickHandler(event) {
+        event.preventDefault();
+        var choice = $('.weapon').find(":selected").text();
+        console.log(choice);
+        user.dbRef.update({
+            choice: choice
+        });
     }
 
     // animation functions 
@@ -369,6 +447,6 @@ $(document).ready(function () {
     $('.ok-button').on('click', okButtonClickHandler);
     $('.no-button').on('click', noButtonClickHandler);
     $('.cancel-button').on('click', cancelButtonClickHandler);
-
-
+    $('.quit-game-button').on('click', quitButtonClickHandler);
+    $('.pick-button').on('click', pickButtonClickHandler);
 });
