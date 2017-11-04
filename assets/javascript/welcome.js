@@ -272,7 +272,7 @@ $(document).ready(function () {
         console.log('oponent', oponent)
         // invite a user
         oponent.dbRef.update({
-            request: oponent.id,
+            request: user.id,
             inGame: true
         });
         user.dbRef.update({
