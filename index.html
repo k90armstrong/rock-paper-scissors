@@ -52,12 +52,12 @@
 
 
     <!--This is the welcome modal -->
-    <div class="modal is-active">
+    <div class="start-modal modal is-active">
         <div class="modal-background">
         </div>
         <div class="modal-content">
-            <p class="subtitle display-none">You can now choose your oponent and begin the game!</p>
-            <form>
+            <p class="subtitle display-none start-message">You can now choose your oponent and begin the game!</p>
+            <form class="start-form">
                 <div class="field">
                     <label class="label">Name</label>
                     <div class="control">
@@ -67,6 +67,44 @@
                 <div class="field is-grouped">
                     <div class="control">
                         <button type="Submit" class="submit-button button is-link">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!--This is the invitation modal -->
+    <div class="invitation modal">
+        <div class="modal-background">
+        </div>
+        <div class="modal-content">
+            <p class="subtitle start-message">
+                <span class="oponent-span"></span> would like to play you!</p>
+            <form>
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button class="ok-button button is-link">OK</button>
+                    </div>
+                    <div class="control">
+                        <button class="no-button button is-link">No Thanks</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!--This is the waiting for oponent -->
+    <div class="wait modal">
+        <div class="modal-background">
+        </div>
+        <div class="modal-content">
+            <p class="subtitle start-message">
+                Waiting for
+                <span class="oponent-span"></span> to respond...</p>
+            <form>
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button class="cancel-button button is-link">Cancel</button>
                     </div>
                 </div>
             </form>
