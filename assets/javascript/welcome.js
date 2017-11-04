@@ -8,7 +8,186 @@ var config = {
     messagingSenderId: "43743713745"
 };
 firebase.initializeApp(config);
+// global variables
 var db = firebase.database();
+var user;
+var opponent;
+var users = [];
+var opponent;
+var userId = localStorage.getItem('id');
+var availableUsers = db.ref('/availableUsers');
+var gamesRef = db.ref('/games');
+var gameId;
+var thisGameWins = 0;
+var thisGameLosses = 0;
+
+// global functions
+function openInvitaionModal(id) {
+    opponent = getUserById(id);
+    opponent.isOpponent = true;
+    user.opponentId = opponent.id;
+    $('.ivitation').addClass('display-none');
+    $('.invitation').addClass('is-active');
+    $('.opponent-span').text(opponent.name);
+    fadeIn($('.invitation'));
+}
+
+function getUserById(id) {
+    for (var i = 0; i < users.length; i++) {
+        if (users[i].id === id) {
+            return users[i];
+        }
+    }
+    return null;
+}
+
+function openGame() {
+    fadeOut($('.game-rooms'), function () {
+        $('.opponent-name').text(opponent.name);
+        $('.game-rooms').addClass('display-none');
+        fadeIn($('.game-container'));
+    });
+}
+
+function closeWaitModal() {
+    fadeOut($('.wait'), function () {
+        $('.wait').removeClass('is-active');
+    });
+}
+
+function openWaitModal() {
+    $('.wait').addClass('display-none');
+    $('.wait').addClass('is-active');
+    $('.opponent-span').text(opponent.name);
+    fadeIn($('.wait'));
+}
+
+function closeInvitationModal() {
+    fadeOut($('.invitation'), function () {
+        $('.invitation').removeClass('is-active');
+    });
+}
+
+function userHasMadeChoice() {
+    if (user.choice) {
+        return true;
+    }
+    return false;
+}
+
+function opponentHasMadeChoice() {
+    if (opponent.choice) {
+        return true;
+    }
+    return false;
+}
+
+function getOpponentChoice() {
+    return opponent.choice;
+}
+
+function closeGame() {
+    fadeOut($('.game-container'), function () {
+        $('.game-container').addClass('display-none');
+        fadeIn($('.game-rooms'));
+    });
+}
+
+function checkIfUserWon() {
+    var possibleWins = ['RockScissors', 'PaperRock', 'ScissorsPaper'];
+    if (user.choice === opponent.choice) {
+        // it is a tie
+        return 'tie';
+    }
+    for (var i = 0; i < possibleWins.length; i++) {
+        if (user.choice + opponent.choice === possibleWins[i]) {
+            // user won
+            thisGameWins += 1;
+            return 'win';
+        }
+    }
+    thisGameLosses += 1;
+    return 'lose';
+}
+
+function changeChoicesToNull() {
+    user.choice = undefined;
+    opponent.choice = undefined;
+}
+
+function createUserElement(dbUser) {
+    var $tr = $('<tr>');
+    $tr.attr('id', 'tr' + dbUser.id);
+    var $td = $('<td>');
+    $td.text(dbUser.name);
+    $tr.append($td);
+
+    var $td = $('<td>');
+    $td.text(dbUser.wins);
+    $tr.append($td);
+
+    var $td = $('<td>');
+    $td.text(dbUser.losses);
+    $tr.append($td);
+
+    var $btn = $('<button>').text('Play Me!');
+    $btn.addClass('button play-button');
+    $btn.attr('data-id', dbUser.id);
+    $btn.addClass('display-none');
+    var $td = $('<td>');
+    $td.append($btn);
+
+    var $offline = $('<p>').text('Offline');
+    $offline.addClass('offline display-none');
+    var $inGame = $('<p>').text('In Game');
+    $inGame.addClass('inGame display-none');
+
+    $td.append($offline);
+    $td.append($inGame);
+    $tr.append($td);
+
+    if (dbUser.online === false) {
+        $offline.removeClass('display-none');
+    }
+    if (dbUser.inGame) {
+        $inGame.removeClass('display-none');
+    }
+    if (dbUser.online && !dbUser.inGame) {
+        $btn.removeClass('display-none');
+    }
+
+    return $tr;
+}
+
+// animation functions 
+function fadeIn($element, cb) {
+    $element.css({
+        opacity: '0'
+    });
+    $element.removeClass('display-none').animate({
+        opacity: '1'
+    }, 500).promise().done(function () {
+        if (cb) {
+            return cb()
+        }
+        return undefined
+    });
+}
+
+function fadeOut($element, cb) {
+    $element.css({
+        opacity: '1'
+    });
+    $element.animate({
+        opacity: '0'
+    }, 500).promise().done(function () {
+        if (cb) {
+            return cb()
+        }
+        return undefined
+    });
+}
+
 
 // classes
 class User {
@@ -46,6 +225,8 @@ class User {
         this.invitation = dbUser.invitation;
         this.gameId = dbUser.gameId;
         this.choice = dbUser.choice;
+        console.log(user);
+
         if (dbUser.online === false) {
             this.changeToOffline();
         }
@@ -60,7 +241,7 @@ class User {
             if (this.request !== false) {
                 // someone wants to play
                 if (this.id === this.userId) {
-                    window.openInvitaionModal(this.request);
+                    openInvitaionModal(this.request);
                 } else {
                     // if this is not the user then just change to in game
                     this.changeToInGame();
@@ -68,24 +249,24 @@ class User {
             }
             if (this.invitation === 'accepted') {
                 // open the game
-                window.closeWaitModal();
-                window.openGame();
+                closeWaitModal();
+                openGame();
                 this.dbRef.update({
                     invitation: 'waiting'
                 });
             } else if (this.invitation === 'denied') {
                 // close the modal
-                window.closeWaitModal();
+                closeWaitModal();
                 this.dbRef.update({
                     invitation: 'waiting'
                 });
             } else if (this.invitation === 'revoked') {
-                window.closeInvitationModal();
+                closeInvitationModal();
                 this.dbRef.update({
                     invitation: 'waiting'
                 });
             } else if (this.invitation === 'quit') {
-                window.closeGame();
+                closeGame();
                 this.dbRef.update({
                     invitation: 'waiting'
                 });
@@ -93,27 +274,27 @@ class User {
             if (this.gameId) {
                 db.ref('/games/' + this.gameId).on('value', (sapshot) => {
                     this.gameChangeHandler(snapshot);
-                })
+                });
             }
             if (this.choice) {
 
                 if (this.isOpponent) {
                     // change the waiting to the choice
                     $('.opponent-choice').text('Ready');
-                    if (window.userHasMadeChoice()) {
+                    if (userHasMadeChoice()) {
                         $('.opponent-choice').text(this.choice);
-                        var verdict = window.checkIfUserWon();
-                        window.changeChoicesToNull();
+                        var verdict = checkIfUserWon();
+                        changeChoicesToNull();
                         console.log(verdict);
                     }
 
                 } else if (this.id === this.userId) {
                     // show the choice
                     $('.user-choice').text(this.choice);
-                    if (window.opponentHasMadeChoice()) {
-                        var oppChoice = window.getOpponentChoice();
+                    if (opponentHasMadeChoice()) {
+                        var oppChoice = getOpponentChoice();
                         $('.opponent-choice').text(oppChoice);
-                        var verdict = window.checkIfUserWon();
+                        var verdict = checkIfUserWon();
                         this.choice = undefined;
                         console.log(verdict);
                     }
@@ -143,23 +324,13 @@ class User {
 
 $(document).ready(function () {
 
-    // gloal variables
-    var users = [];
-    var opponent;
-    var userId = localStorage.getItem('id');
-    var availableUsers = db.ref('/availableUsers');
-    var gamesRef = db.ref('/games');
-    var gameId;
-    var thisGameWins = 0;
-    var thisGameLosses = 0;
-
     // checking if there is a name stored in local storage
     var userName = localStorage.getItem('name');
     if (userName) {
         $('.name-input').val(userName);
     }
 
-    var user = new User({
+    user = new User({
         name: userName,
         id: userId,
         inGame: false,
@@ -172,14 +343,7 @@ $(document).ready(function () {
     var userRef = db.ref('/availableUsers/' + user.id);
 
     // functions
-    function getUserById(id) {
-        for (var i = 0; i < users.length; i++) {
-            if (users[i].id === id) {
-                return users[i];
-            }
-        }
-        return null;
-    }
+
 
     function submittButtonHandler(e) {
         e.preventDefault();
@@ -245,118 +409,6 @@ $(document).ready(function () {
         }
     }
 
-    window.openInvitaionModal = function (id) {
-        opponent = getUserById(id);
-        opponent.isOpponent = true;
-        user.opponentId = opponent.id;
-        $('.ivitation').addClass('display-none');
-        $('.invitation').addClass('is-active');
-        $('.opponent-span').text(opponent.name);
-        fadeIn($('.invitation'));
-    }
-
-    window.closeWaitModal = function () {
-        fadeOut($('.wait'), function () {
-            $('.wait').removeClass('is-active');
-        });
-    }
-
-    window.closeInvitationModal = function () {
-        fadeOut($('.invitation'), function () {
-            $('.invitation').removeClass('is-active');
-        });
-    }
-
-    window.userHasMadeChoice = function () {
-        if (user.choice) {
-            return true;
-        }
-        return false;
-    }
-
-    window.opponentHasMadeChoice = function () {
-        if (opponent.choice) {
-            return true;
-        }
-        return false;
-    }
-
-    window.getOpponentChoice = function () {
-        return opponent.choice;
-    }
-
-    window.closeGame = function () {
-        fadeOut($('.game-container'), function () {
-            $('.game-container').addClass('display-none');
-            fadeIn($('.game-rooms'));
-        });
-    }
-
-    window.checkIfUserWon = function () {
-        var possibleWins = ['RockScissors', 'PaperRock', 'ScissorsPaper'];
-        if (user.choice === opponent.choice) {
-            // it is a tie
-            return 'tie';
-        }
-        for (var i = 0; i < possibleWins.length; i++) {
-            if (user.choice + opponent.choice === possibleWins[i]) {
-                // user won
-                thisGameWins += 1;
-                return 'win';
-            }
-        }
-        thisGameLosses += 1;
-        return 'lose';
-    }
-
-    window.changeChoicesToNull = function () {
-        user.choice = undefined;
-        opponent.choice = undefined;
-    }
-
-    function createUserElement(dbUser) {
-        var $tr = $('<tr>');
-        $tr.attr('id', 'tr' + dbUser.id);
-        var $td = $('<td>');
-        $td.text(dbUser.name);
-        $tr.append($td);
-
-        var $td = $('<td>');
-        $td.text(dbUser.wins);
-        $tr.append($td);
-
-        var $td = $('<td>');
-        $td.text(dbUser.losses);
-        $tr.append($td);
-
-        var $btn = $('<button>').text('Play Me!');
-        $btn.addClass('button play-button');
-        $btn.attr('data-id', dbUser.id);
-        $btn.addClass('display-none');
-        var $td = $('<td>');
-        $td.append($btn);
-
-        var $offline = $('<p>').text('Offline');
-        $offline.addClass('offline display-none');
-        var $inGame = $('<p>').text('In Game');
-        $inGame.addClass('inGame display-none');
-
-        $td.append($offline);
-        $td.append($inGame);
-        $tr.append($td);
-
-        if (dbUser.online === false) {
-            $offline.removeClass('display-none');
-        }
-        if (dbUser.inGame) {
-            $inGame.removeClass('display-none');
-        }
-        if (dbUser.online && !dbUser.inGame) {
-            $btn.removeClass('display-none');
-        }
-
-        return $tr;
-    }
 
     function playButtonHanlder(event) {
         var id = $(this).attr('data-id');
@@ -372,10 +424,7 @@ $(document).ready(function () {
             invitation: 'waiting',
             inGame: true
         });
-        $('.wait').addClass('display-none');
-        $('.wait').addClass('is-active');
-        $('.opponent-span').text(opponent.name);
-        fadeIn($('.wait'));
+        openWaitModal();
     }
 
     function okButtonClickHandler(event) {
@@ -405,20 +454,13 @@ $(document).ready(function () {
             gameId: gameId,
             choice: null
         });
-        window.closeInvitationModal();
+        closeInvitationModal();
 
         // open the game
-        window.openGame();
+        openGame();
     }
 
-    window.openGame = function () {
-        fadeOut($('.game-rooms'), function () {
-            $('.opponent-name').text(opponent.name);
-            $('.game-rooms').addClass('display-none');
-            fadeIn($('.game-container'));
-        });
 
-    }
 
     function noButtonClickHandler(event) {
         event.preventDefault();
@@ -451,7 +493,7 @@ $(document).ready(function () {
             request: false,
             choice: null
         });
-        window.closeWaitModal();
+        closeWaitModal();
     }
 
     function quitButtonClickHandler(event) {
@@ -468,7 +510,7 @@ $(document).ready(function () {
             request: false,
             choice: null
         });
-        window.closeGame();
+        closeGame();
     }
 
     function pickButtonClickHandler(event) {
@@ -479,34 +521,6 @@ $(document).ready(function () {
         });
     }
 
-    // animation functions 
-    function fadeIn($element, cb) {
-        $element.css({
-            opacity: '0'
-        });
-        $element.removeClass('display-none').animate({
-            opacity: '1'
-        }, 500).promise().done(function () {
-            if (cb) {
-                return cb()
-            }
-            return undefined
-        });
-    }
-
-    function fadeOut($element, cb) {
-        $element.css({
-            opacity: '1'
-        });
-        $element.animate({
-            opacity: '0'
-        }, 500).promise().done(function () {
-            if (cb) {
-                return cb()
-            }
-            return undefined
-        });
-    }
 
     // listeners
     $('.submit-button').on('click', submittButtonHandler);
