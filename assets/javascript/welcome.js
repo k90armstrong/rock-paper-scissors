@@ -22,6 +22,7 @@ $(document).ready(function () {
     var gameId;
     var thisGameWins = 0;
     var thisGameLosses = 0;
+    var statusMessage;
 
     // global functions
     function openInvitaionModal(id) {
@@ -44,7 +45,7 @@ $(document).ready(function () {
     }
 
     function openGame() {
-        console.log('open game');
+        $('.messages').empty();
         db.ref('/games/' + gameId + '/messages').on('child_added', messageAddedHandle);
         fadeOut($('.game-rooms'), function () {
             $('.opponent-name').text(opponent.name);
@@ -102,22 +103,37 @@ $(document).ready(function () {
         var possibleWins = ['RockScissors', 'PaperRock', 'ScissorsPaper'];
         if (user.choice === opponent.choice) {
             // it is a tie
+            statusMessage = 'tied';
             return 'tie';
         }
         for (var i = 0; i < possibleWins.length; i++) {
             if (user.choice + opponent.choice === possibleWins[i]) {
                 // user won
                 thisGameWins += 1;
+                statusMessage = 'won';
                 return 'win';
             }
         }
         thisGameLosses += 1;
+        statusMessage = 'lost';
         return 'lose';
     }
 
-    function changeChoicesToNull() {
-        user.choice = undefined;
-        opponent.choice = undefined;
+    function resetGame() {
+        $('.game-user-wins').text(thisGameWins);
+        $('.game-opponent-wins').text(thisGameLosses);
+        $('.win-lose-modal').addClass('is-active');
+        $('.game-status').text(statusMessage);
+        fadeIn($('.win-lose-modal'), function () {
+            setTimeout(function () {
+                fadeOut($('.win-lose-modal'), function () {
+                    $('.opponent-choice').text('Waiting...');
+                    $('.user-choice').text('Pick Weapon');
+                    $('.win-lose-modal').removeClass('is-active');
+                });
+            }, 2000);
+        })
+
     }
 
     function createUserElement(dbUser) {
@@ -129,9 +145,11 @@ $(document).ready(function () {
 
         var $td = $('<td>');
         $td.text(dbUser.wins);
+        $td.addClass('wins-col');
         $tr.append($td);
 
         var $td = $('<td>');
+        $td.addClass('losses-col');
         $td.text(dbUser.losses);
         $tr.append($td);
 
@@ -198,7 +216,7 @@ $(document).ready(function () {
 
     // User Class
     class User {
-        constructor(dbUser, userId) {
+        constructor(dbUser) {
             this.name = dbUser.name;
             this.id = dbUser.id;
             this.inGame = dbUser.inGame;
@@ -206,7 +224,6 @@ $(document).ready(function () {
             this.wins = dbUser.wins;
             this.losses = dbUser.losses;
             this.online = dbUser.online;
-            this.userId = userId;
             this.gameId = dbUser.gameId;
             this.choice = undefined;
         }
@@ -233,7 +250,7 @@ $(document).ready(function () {
             this.gameId = dbUser.gameId;
             this.choice = dbUser.choice;
             console.log(user);
-
+            this.updateMainStats();
             if (dbUser.online === false) {
                 this.changeToOffline();
             }
@@ -244,10 +261,10 @@ $(document).ready(function () {
                 this.changeToAvailable();
             }
             // stuff below here we only care if this user is an opponent or the user 
-            if (this.id === this.userId || this.isOpponent) {
+            if (this.isUser || this.isOpponent) {
                 if (this.request !== false) {
                     // someone wants to play
-                    if (this.id === this.userId) {
+                    if (this.isUser) {
                         openInvitaionModal(this.request);
                     } else {
                         // if this is not the user then just change to in game
@@ -286,22 +303,44 @@ $(document).ready(function () {
                         if (userHasMadeChoice()) {
                             $('.opponent-choice').text(this.choice);
                             var verdict = checkIfUserWon();
-                            changeChoicesToNull();
+                            this.updateStats(verdict);
                             console.log(verdict);
+                            setTimeout(resetGame, 2000);
                         }
-                    } else if (this.id === this.userId) {
+                    } else if (this.isUser) {
                         // show the choice
                         $('.user-choice').text(this.choice);
                         if (opponentHasMadeChoice()) {
                             var oppChoice = getOpponentChoice();
                             $('.opponent-choice').text(oppChoice);
                             var verdict = checkIfUserWon();
+                            this.updateStats(verdict);
                             this.choice = undefined;
                             console.log(verdict);
+                            setTimeout(resetGame, 2000);
                         }
                     }
                 }
             }
+        }
+        updateStats(verdict) {
+            if (verdict === 'win') {
+                this.wins += 1;
+                this.dbRef.update({
+                    wins: this.wins,
+                    choice: null
+                });
+            } else if (verdict === 'lose') {
+                this.losses += 1;
+                this.dbRef.update({
+                    losses: this.losses,
+                    choice: null
+                });
+            }
+        }
+        updateMainStats() {
+            $('#tr' + this.id).find('.losses-col').text(this.losses);
+            $('#tr' + this.id).find('.wins-col').text(this.wins);
         }
         gameChangeHandler(snapshot) {
             console.log(snapshot);
@@ -339,7 +378,9 @@ $(document).ready(function () {
         losses: 0,
         online: true,
         gameId: null
-    }, null);
+    });
+    user.isUser = true;
+    users.push(user);
 
     // end handlers
     function submittButtonHandler(e) {
@@ -363,6 +404,7 @@ $(document).ready(function () {
             // set the id for local storage
             localStorage.setItem('id', user.id);
             user.addDbRef();
+            user.addListener();
         } else {
             // set in game to false and request to false
             user.addDbRef();
@@ -396,11 +438,11 @@ $(document).ready(function () {
     function availableUsersHandler(snapshot) {
         var dbUser = snapshot.val();
         dbUser.id = snapshot.key;
-        var nUser = new User(dbUser, user.id);
-        nUser.addDbRef();
-        nUser.addListener();
-        users.push(nUser);
         if (dbUser.id !== user.id) {
+            var nUser = new User(dbUser);
+            nUser.addDbRef();
+            nUser.addListener();
+            users.push(nUser);
             var $el = createUserElement(dbUser);
             $('tbody').append($el);
         }
@@ -510,6 +552,8 @@ $(document).ready(function () {
             request: false,
             choice: null
         });
+        thisGameLosses = 0;
+        thisGameWins = 0;
         closeGame();
     }
 
@@ -526,7 +570,7 @@ $(document).ready(function () {
         if (message.name === user.name) {
             message.name = 'You';
         }
-        $('.messages').append($('<div>').text(message.name + ': ' + message.message));
+        $('.messages').append($('<div>').html('<strong>' + message.name + ': </strong>' + message.message));
         $(".messages").scrollTop($(".messages")[0].scrollHeight);
     }
 
@@ -550,4 +594,10 @@ $(document).ready(function () {
     $('.quit-game-button').on('click', quitButtonClickHandler);
     $('.pick-button').on('click', pickButtonClickHandler);
     $('.send-message').on('click', sendMessageHandler);
+    $(window).on('unload', function () {
+        user.dbRef.update({
+            inGame: false,
+            online: false
+        });
+    });
 });
