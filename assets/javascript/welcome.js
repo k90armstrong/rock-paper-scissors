@@ -45,7 +45,9 @@ $(document).ready(function () {
     }
 
     function openGame() {
+        console.log('handler added');
         $('.messages').empty();
+        db.ref('/games/' + gameId + '/messages').off(); // to make sure it hasnt been added twice
         db.ref('/games/' + gameId + '/messages').on('child_added', messageAddedHandle);
         fadeOut($('.game-rooms'), function () {
             $('.opponent-name').text(opponent.name);
