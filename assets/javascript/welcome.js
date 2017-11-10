@@ -95,30 +95,38 @@ $(document).ready(function () {
 
     function closeGame() {
         db.ref('/games/' + gameId + '/messages').off();
+        db.ref('/games/' + gameId + '/messages').remove();
         fadeOut($('.game-container'), function () {
             $('.game-container').addClass('display-none');
             fadeIn($('.game-rooms'));
         });
+        gameId = undefined;
     }
 
     function checkIfUserWon() {
+        var verdict;
         var possibleWins = ['RockScissors', 'PaperRock', 'ScissorsPaper'];
         if (user.choice === opponent.choice) {
             // it is a tie
             statusMessage = 'tied';
-            return 'tie';
+            verdict = 'tie';
         }
         for (var i = 0; i < possibleWins.length; i++) {
             if (user.choice + opponent.choice === possibleWins[i]) {
                 // user won
                 thisGameWins += 1;
                 statusMessage = 'won';
-                return 'win';
+                verdict = 'win';
             }
         }
-        thisGameLosses += 1;
-        statusMessage = 'lost';
-        return 'lose';
+        if (!verdict) {
+            thisGameLosses += 1;
+            statusMessage = 'lost';
+            verdict = 'lose';
+        }
+
+        user.updateStats(verdict);
+        return verdict;
     }
 
     function resetGame() {
@@ -305,7 +313,7 @@ $(document).ready(function () {
                         if (userHasMadeChoice()) {
                             $('.opponent-choice').text(this.choice);
                             var verdict = checkIfUserWon();
-                            this.updateStats(verdict);
+                            // this.updateStats(verdict);
                             console.log(verdict);
                             setTimeout(resetGame, 2000);
                         }
@@ -316,7 +324,7 @@ $(document).ready(function () {
                             var oppChoice = getOpponentChoice();
                             $('.opponent-choice').text(oppChoice);
                             var verdict = checkIfUserWon();
-                            this.updateStats(verdict);
+                            // this.updateStats(verdict);
                             this.choice = undefined;
                             console.log(verdict);
                             setTimeout(resetGame, 2000);
@@ -400,7 +408,8 @@ $(document).ready(function () {
                 losses: 0,
                 invitation: 'waiting',
                 online: true,
-                gameId: null
+                gameId: null,
+                choice: null
             });
             user.id = fireUserRef.key;
             // set the id for local storage
@@ -416,7 +425,8 @@ $(document).ready(function () {
                 inGame: false,
                 request: false,
                 invitation: 'waiting',
-                online: true
+                online: true,
+                choice: null
             });
         }
         localStorage.setItem('name', userName); // add name to localstorage        
@@ -597,9 +607,14 @@ $(document).ready(function () {
     $('.pick-button').on('click', pickButtonClickHandler);
     $('.send-message').on('click', sendMessageHandler);
     $(window).on('unload', function () {
-        user.dbRef.update({
-            inGame: false,
-            online: false
-        });
+        if (user.id) {
+            user.dbRef.update({
+                inGame: false,
+                online: false
+            });
+        }
+        if (gameId) {
+            db.ref('/games/' + gameId + '/messages').remove();
+        }
     });
 });
