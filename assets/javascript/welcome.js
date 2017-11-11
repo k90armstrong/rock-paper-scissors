@@ -24,11 +24,15 @@ $(document).ready(function () {
     var thisGameLosses = 0;
     var statusMessage;
 
-    // global functions
+    // global functions start here___________________________________________________________
     function openInvitaionModal(id) {
+        // funciton to open the modal used if user is invited
+        // to play a game
+        // going to assume the one inviting is the opponent
         opponent = getUserById(id);
         opponent.isOpponent = true;
         user.opponentId = opponent.id;
+        // opening the modal and using the animation to fade in
         $('.ivitation').addClass('display-none');
         $('.invitation').addClass('is-active');
         $('.opponent-span').text(opponent.name);
@@ -36,6 +40,8 @@ $(document).ready(function () {
     }
 
     function getUserById(id) {
+        // used to get a user from the global users array by id
+        // id is a string and is the firebase id in the availableUsers collection
         for (var i = 0; i < users.length; i++) {
             if (users[i].id === id) {
                 return users[i];
@@ -45,10 +51,14 @@ $(document).ready(function () {
     }
 
     function openGame() {
-        console.log('handler added');
+        // this function is used to change the UI to show the game
+        // clear the old messages if there were any
         $('.messages').empty();
-        db.ref('/games/' + gameId + '/messages').off(); // to make sure it hasnt been added twice
+        // to make sure it hasnt been added twice, remove the listener if it had been listening
+        db.ref('/games/' + gameId + '/messages').off();
+        // add listener to the game specific collection
         db.ref('/games/' + gameId + '/messages').on('child_added', messageAddedHandle);
+        // use animation to fade out game rooms and fade in the game
         fadeOut($('.game-rooms'), function () {
             $('.opponent-name').text(opponent.name);
             $('.game-rooms').addClass('display-none');
@@ -94,6 +104,7 @@ $(document).ready(function () {
     }
 
     function closeGame() {
+        // function to change the UI and remove listers if user quits the game
         db.ref('/games/' + gameId + '/messages').off();
         db.ref('/games/' + gameId + '/messages').remove();
         fadeOut($('.game-container'), function () {
@@ -104,6 +115,9 @@ $(document).ready(function () {
     }
 
     function checkIfUserWon() {
+        // this function is to check if the user has won
+        // it will then update the users stats stored in firebase
+        // by running the user.updateStats method
         var verdict;
         var possibleWins = ['RockScissors', 'PaperRock', 'ScissorsPaper'];
         if (user.choice === opponent.choice) {
@@ -124,12 +138,13 @@ $(document).ready(function () {
             statusMessage = 'lost';
             verdict = 'lose';
         }
-
         user.updateStats(verdict);
         return verdict;
     }
 
     function resetGame() {
+        // this function is ran after every rock paper scissors match
+        // it resets the view to the beginning state and also updates the current game stats
         $('.game-user-wins').text(thisGameWins);
         $('.game-opponent-wins').text(thisGameLosses);
         $('.win-lose-modal').addClass('is-active');
@@ -143,10 +158,12 @@ $(document).ready(function () {
                 });
             }, 2000);
         })
-
     }
 
     function createUserElement(dbUser) {
+        // function to create a row in the users table
+        // the function takes in a user object and it return the
+        // jquery element
         var $tr = $('<tr>');
         $tr.attr('id', 'tr' + dbUser.id);
         var $td = $('<td>');
@@ -164,7 +181,7 @@ $(document).ready(function () {
         $tr.append($td);
 
         var $btn = $('<button>').text('Play Me!');
-        $btn.addClass('button play-button');
+        $btn.addClass('button play-button is-info is-outlined');
         $btn.attr('data-id', dbUser.id);
         $btn.addClass('display-none');
         var $td = $('<td>');
@@ -191,9 +208,9 @@ $(document).ready(function () {
 
         return $tr;
     }
-    // end global functions
+    // end global functions___________________________________________________________________________
 
-    // animation functions 
+    // animation functions____________________________________________________________________________
     function fadeIn($element, cb) {
         $element.css({
             opacity: '0'
@@ -221,11 +238,14 @@ $(document).ready(function () {
             return undefined
         });
     }
-    // end animation functions
+    // end animation functions_____________________________________________________________________
 
 
-    // User Class
+    // User Class__________________________________________________________________________________
     class User {
+        // this is the main class, every user in the system will be created with this class
+        // all of the methods to update a users stats and all game requests are handled 
+        // within methods of the class.
         constructor(dbUser) {
             this.name = dbUser.name;
             this.id = dbUser.id;
@@ -270,7 +290,7 @@ $(document).ready(function () {
             if (dbUser.online && !dbUser.inGame) {
                 this.changeToAvailable();
             }
-            // stuff below here we only care if this user is an opponent or the user 
+            // stuff below here we only care if this user is an opponent or the user
             if (this.isUser || this.isOpponent) {
                 if (this.request !== false) {
                     // someone wants to play
@@ -371,8 +391,9 @@ $(document).ready(function () {
             $('#tr' + this.id).find('.play-button').addClass('display-none');
         }
     }
-    // end user class
+    // end user class__________________________________________________________________________
 
+    // start up below here_____________________________________________________________________
     // checking if there is a name stored in local storage
     var userName = localStorage.getItem('name');
     if (userName) {
@@ -392,7 +413,7 @@ $(document).ready(function () {
     user.isUser = true;
     users.push(user);
 
-    // end handlers
+    // Start of UI handler functions_______________________________________________________________
     function submittButtonHandler(e) {
         e.preventDefault();
         userName = $('.name-input').val();
@@ -446,8 +467,9 @@ $(document).ready(function () {
         });
     }
 
-
     function availableUsersHandler(snapshot) {
+        // will run when a new user is added to firebase database
+        // snapshot.val() will be one user
         var dbUser = snapshot.val();
         dbUser.id = snapshot.key;
         if (dbUser.id !== user.id) {
@@ -460,8 +482,8 @@ $(document).ready(function () {
         }
     }
 
-
     function playButtonHanlder(event) {
+        // runs when a user invites someone to play
         var id = $(this).attr('data-id');
         opponent = getUserById(id);
         opponent.isOpponent = true;
@@ -479,6 +501,7 @@ $(document).ready(function () {
     }
 
     function okButtonClickHandler(event) {
+        // runs when a user accepts an invitation to play a game
         event.preventDefault();
         // create a new game object in db
         var gameReturn = gamesRef.push({
@@ -517,6 +540,7 @@ $(document).ready(function () {
     }
 
     function noButtonClickHandler(event) {
+        // runs when a user decines an invitation
         event.preventDefault();
         user.dbRef.update({
             request: false,
@@ -534,6 +558,7 @@ $(document).ready(function () {
     }
 
     function cancelButtonClickHandler(event) {
+        // runs when the user invites someone then declines the invitation
         event.preventDefault();
         opponent.dbRef.update({
             invitation: 'revoked',
@@ -551,6 +576,7 @@ $(document).ready(function () {
     }
 
     function quitButtonClickHandler(event) {
+        // runs when a user quits the game
         event.preventDefault();
         user.dbRef.update({
             inGame: false,
@@ -570,6 +596,7 @@ $(document).ready(function () {
     }
 
     function pickButtonClickHandler(event) {
+        // runs when the user has picked their option of rock, paper or scissors
         event.preventDefault();
         var choice = $('.weapon').find(":selected").text();
         user.dbRef.update({
@@ -578,6 +605,8 @@ $(document).ready(function () {
     }
 
     function messageAddedHandle(snapshot) {
+        // runs whenever a new message is added to the database
+        // message === {name: username, message: a message}
         var message = snapshot.val();
         if (message.name === user.name) {
             message.name = 'You';
@@ -587,6 +616,7 @@ $(document).ready(function () {
     }
 
     function sendMessageHandler(event) {
+        // runs when a user sends a message
         event.preventDefault();
         var message = {
             message: $('.message-input').val().trim(),
@@ -595,9 +625,9 @@ $(document).ready(function () {
         db.ref('/games/' + gameId + '/messages').push(message);
         $('.message-input').val('');
     }
-    // end handlers
+    // end UI handlers__________________________________________________________________________________
 
-    // listeners
+    // adding listeners to UI elements__________________________________________________________________
     $('.submit-button').on('click', submittButtonHandler);
     $(document).on('click', '.play-button', playButtonHanlder);
     $('.ok-button').on('click', okButtonClickHandler);
@@ -617,4 +647,5 @@ $(document).ready(function () {
             db.ref('/games/' + gameId + '/messages').remove();
         }
     });
+    // end adding listeners to UI elements_______________________________________________________________
 });
